@@ -1,0 +1,259 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf210
+{\fonttbl\f0\froman\fcharset0 Times-Roman;\f1\fmodern\fcharset0 Courier;\f2\fmodern\fcharset0 Courier-Bold;
+}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue233;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}}
+\margl1440\margr1440\vieww28700\viewh18280\viewkind0
+\deftab720
+\pard\pardeftab720\sa280
+
+\f0\b\fs36 \cf0 COS 226 Programming Assignment\
+\pard\pardeftab720\sa298
+\cf0 8 Puzzle\
+\pard\pardeftab720\sa240
+
+\b0 \cf0 Write a program to solve the 8-puzzle problem (and its natural generalizations) using the A* search algorithm.\
+\pard\pardeftab720\sa240
+
+\b \cf0 The problem.
+\b0  The {\field{\*\fldinst{HYPERLINK "http://en.wikipedia.org/wiki/Fifteen_puzzle"}}{\fldrslt \cf2 \ul \ulc2 8-puzzle problem}} is a puzzle invented and popularized by Noyes Palmer Chapman in the 1870s. It is played on a 3-by-3 grid with 8 square blocks labeled 1 through 8 and a blank square. Your goal is to rearrange the blocks so that they are in order, using as few moves as possible. You are permitted to slide blocks horizontally or vertically into the blank square. The following shows a sequence of legal moves from an 
+\i initial board
+\i0  (left) to the 
+\i goal board
+\i0  (right).
+\f1 \
+\pard\pardeftab720
+\cf0     1  3        1     3        1  2  3        1  2  3        1  2  3\
+ 4  2  5   =>   4  2  5   =>   4     5   =>   4  5      =>   4  5  6\
+ 7  8  6        7  8  6        7  8  6        7  8  6        7  8 \
+\
+ initial        1 left          2 up          5 left          goal\
+\pard\pardeftab720\sa240
+
+\f0\b \cf0 Best-first search.
+\b0  Now, we describe a solution to the problem that illustrates a general artificial intelligence methodology known as the {\field{\*\fldinst{HYPERLINK "http://en.wikipedia.org/wiki/A*_search_algorithm"}}{\fldrslt \cf2 \ul \ulc2 A* search algorithm}}. We define a 
+\i search node
+\i0  of the game to be a board, the number of moves made to reach the board, and the previous search node. First, insert the initial search node (the initial board, 0 moves, and a null previous search node) into a priority queue. Then, delete from the priority queue the search node with the minimum priority, and insert onto the priority queue all neighboring search nodes (those that can be reached in one move from the dequeued search node). Repeat this procedure until the search node dequeued corresponds to a goal board. The success of this approach hinges on the choice of 
+\i priority function
+\i0  for a search node. We consider two priority functions:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720
+\ls1\ilvl0
+\i \cf0 {\listtext	\'95	}Hamming priority function.
+\i0  The number of blocks in the wrong position, plus the number of moves made so far to get to the search node. Intuitively, a search node with a small number of blocks in the wrong position is close to the goal, and we prefer a search node that have been reached using a small number of moves. \
+\ls1\ilvl0
+\i {\listtext	\'95	}Manhattan priority function.
+\i0  The sum of the Manhattan distances (sum of the vertical and horizontal distance) from the blocks to their goal positions, plus the number of moves made so far to get to the search node.\
+\pard\pardeftab720
+\cf0 For example, the Hamming and Manhattan priorities of the initial search node below are 5 and 10, respectively.
+\f1 \
+ 8  1  3        1  2  3     1  2  3  4  5  6  7  8    1  2  3  4  5  6  7  8\
+ 4     2        4  5  6     ----------------------    ----------------------\
+ 7  6  5        7  8        1  1  0  0  1  1  0  1    1  2  0  0  2  2  0  3\
+\
+ initial          goal         Hamming = 5 + 0          Manhattan = 10 + 0\
+\pard\pardeftab720\sa240
+
+\f0 \cf0 We make a key observation: To solve the puzzle from a given search node on the priority queue, the total number of moves we need to make (including those already made) is at least its priority, using either the Hamming or Manhattan priority function. (For Hamming priority, this is true because each block that is out of place must move at least once to reach its goal position. For Manhattan priority, this is true because each block must move its Manhattan distance from its goal position. Note that we do not count the blank square when computing the Hamming or Manhattan priorities.) Consequently, when the goal board is dequeued, we have discovered not only a sequence of moves from the initial board to the goal board, but one that makes the fewest number of moves. (Challenge for the mathematically inclined: prove this fact.)\
+\pard\pardeftab720\sa240
+
+\b \cf0 A critical optimization.
+\b0  Best-first search has one annoying feature: search nodes corresponding to the same board are enqueued on the priority queue many times. To reduce unnecessary exploration of useless search nodes, when considering the neighbors of a search node, don't enqueue a neighbor if its board is the same as the board of the previous search node.
+\f1 \
+\pard\pardeftab720
+\cf0  8  1  3       8  1  3       8  1       8  1  3     8  1  3\
+ 4     2       4  2          4  2  3    4     2     4  2  5\
+ 7  6  5       7  6  5       7  6  5    7  6  5     7  6\
+\
+ previous    search node    neighbor   neighbor    neighbor\
+                                      (disallow)\
+\pard\pardeftab720\sa240
+
+\f0\b \cf0 Game tree.
+\b0  One way to view the computation is as a 
+\i game tree
+\i0 , where each search node is a node in the game tree and the children of a node correspond to its neighboring search nodes. The root of the game tree is the initial search node; the internal nodes have already been processed; the leaf nodes are maintained in a priority queue; at each step, the A* algorithm removes the node with the smallest priority from the priority queue and processes it (by adding its children to both the game tree and the priority queue).\
+\pard\pardeftab720\qc
+\cf0 \
+\pard\pardeftab720\sa240
+
+\b \cf0 Detecting infeasible puzzles.
+\b0  Not all initial boards can lead to the goal board such as the one below.\
+\pard\pardeftab720
+
+\f1 \cf0  1  2  3\
+ 4  5  6\
+ 8  7\
+\
+infeasible\
+\pard\pardeftab720
+
+\f0 \cf0 To detect such situations, use the fact that boards are divided into two equivalence classes with respect to reachability: (i) those that lead to the goal board and (ii) those that lead to the goal board if we modify the initial board by swapping any pair of adjacent (non-blank) blocks in the same row. (Difficult challenge for the mathematically inclined: prove this fact.) To apply the fact, run the A* algorithm simultaneously on two puzzle instances\'97one with the initial board and one with the initial board modified by swapping a pair of adjacent blocks in the same row. Exactly one of the two will lead to the goal board.\
+\pard\pardeftab720\sa240
+
+\b \cf0 Board and Solver data types.
+\b0  Organize your program by creating an immutable data type 
+\f1 Board
+\f0  with the following API:\
+\
+\pard\pardeftab720
+
+\f1 \cf0 public class Board \{\
+    public Board(int[][] blocks)           // construct a board from an N-by-N array of blocks\
+                                           // (where blocks[i][j] = block in row i, column j)\
+    public int dimension()                 // board dimension N\
+    public int hamming()                   // number of blocks out of place\
+    public int manhattan()                 // sum of Manhattan distances between blocks and goal\
+    public boolean isGoal()                // is this board the goal board?\
+    public Board twin()                    // a board obtained by exchanging two adjacent blocks in the same row\
+    public boolean equals(Object y)        // does this board equal y?\
+    public Iterable<Board> neighbors()     // all neighboring boards\
+    public String toString()               // string representation of the board (in the output format specified below)\
+\}\
+\pard\pardeftab720\sa240
+
+\f0 \cf0 and an immutable data type 
+\f1 Solver
+\f0  with the following API:\
+\pard\pardeftab720
+
+\f1 \cf0 public class Solver \{\
+    public Solver(Board initial)            // find a solution to the initial board (using the A* algorithm)\
+    public boolean isSolvable()             // is the initial board solvable?\
+    public int moves()                      // min number of moves to solve initial board; -1 if no solution\
+    public Iterable<Board> solution()       // sequence of boards in a shortest solution; null if no solution\
+    public static void main(String[] args)  // solve a slider puzzle (given below)\
+\}\
+\pard\pardeftab720
+
+\f0 \cf0 To implement the A* algorithm, you must use the 
+\f1 MinPQ
+\f0  data type from 
+\f1 algs4.jar
+\f0  for the priority queues.\
+\pard\pardeftab720\sa240
+\cf0 \
+\pard\pardeftab720\sa240
+
+\b \cf0 Solver test client.
+\b0  Use the following test client to read a puzzle from a file (specified as a command-line argument) and print the solution to standard output.\
+\pard\pardeftab720
+
+\f1 \cf0 public static void main(String[] args) \{\
+    // create initial board from file\
+    In in = new In(args[0]);\
+    int N = in.readInt();\
+    int[][] blocks = new int[N][N];\
+    for (int i = 0; i < N; i++)\
+        for (int j = 0; j < N; j++)\
+            blocks[i][j] = in.readInt();\
+    Board initial = new Board(blocks);\
+\
+    // solve the puzzle\
+    Solver solver = new Solver(initial);\
+\
+    // print solution to standard output\
+    if (!solver.isSolvable())\
+        StdOut.println("No solution possible");\
+    else \{\
+        StdOut.println("Minimum number of moves = " + solver.moves());\
+        for (Board board : solver.solution())\
+            StdOut.println(board);\
+    \}\
+\}\
+\pard\pardeftab720\sa240
+
+\f0\b \cf0 Input and output formats.
+\b0  The input and output format for a board is the board dimension 
+\i N
+\i0  followed by the 
+\i N
+\i0 -by-
+\i N
+\i0  initial board, using 0 to represent the blank square. As an example,\
+\pard\pardeftab720
+
+\f2\b \cf0 % more puzzle04.txt
+\f1\b0 \
+3\
+ 0  1  3\
+ 4  2  5\
+ 7  8  6\
+\
+% 
+\f2\b java Solver puzzle04.txt
+\f1\b0 \
+Minimum number of moves = 4\
+\
+3\
+ 0  1  3 \
+ 4  2  5 \
+ 7  8  6 \
+\
+3\
+ 1  0  3 \
+ 4  2  5 \
+ 7  8  6 \
+\
+3\
+ 1  2  3 \
+ 4  0  5 \
+ 7  8  6 \
+\
+3\
+ 1  2  3 \
+ 4  5  0   \
+ 7  8  6 \
+\
+3\
+ 1  2  3 \
+ 4  5  6 \
+ 7  8  0\
+% 
+\f2\b more puzzle-unsolvable3x3.txt
+\f1\b0 \
+3\
+ 1  2  3\
+ 4  5  6\
+ 8  7  0\
+\
+% 
+\f2\b java Solver puzzle3x3-unsolvable.txt
+\f1\b0 \
+No solution possible\
+\pard\pardeftab720
+
+\f0 \cf0 Your program should work correctly for arbitrary 
+\i N
+\i0 -by-
+\i N
+\i0  boards (for any 2 \uc0\u8804  
+\i N
+\i0  < 128), even if it is too slow to solve some of them in a reasonable amount of time.\
+\pard\pardeftab720\sa240
+\cf0 \
+\pard\pardeftab720\sa240
+
+\b \cf0 Deliverables.
+\b0  Submit the files 
+\f1 Board.java
+\f0  and 
+\f1 Solver.java
+\f0  (with the Manhattan priority). We will supply 
+\f1 stdlib.jar
+\f0  and 
+\f1 algs4.jar
+\f0 . Your may not call any library functions other than those in 
+\f1 java.lang
+\f0 , 
+\f1 java.util
+\f0 , 
+\f1 stdlib.jar
+\f0 , and 
+\f1 algs4.jar
+\f0 . You must use the 
+\f1 MinPQ
+\f0  data type from 
+\f1 algs4.jar
+\f0  for the priority queues.\
+}
