@@ -22,6 +22,8 @@ import java.util.LinkedList;
  * The methods <tt>distance()</tt> and <tt>sap()</tt> should run in time linear
  * in the size of the WordNet digraph. For the analysis, assume that the number
  * of nouns per synset is bounded by a constant. 
+ *
+ *  @author Michael Teferra
  */
 
 public class WordNet {

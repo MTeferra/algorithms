@@ -17,6 +17,8 @@ import java.util.Iterator;
  * take time at most proportional to E + V in the worst case, where E and V are
  * the number of edges and vertices in the digraph, respectively. Your data type
  * should use space proportional to E + V. 
+ *
+ *  @author Michael Teferra
  */
 public class SAP {
     

@@ -15,6 +15,8 @@
  * dist(Ai, An) 
  * <p>
  * and return a noun At for which dt is maximum. 
+ *
+ *  @author Michael Teferra
  */
 
 public class Outcast {
