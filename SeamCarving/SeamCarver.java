@@ -1,5 +1,4 @@
 import java.awt.Color;
-import java.util.Iterator;
 
 /**
  * <tt>SeamCarver</tt> class resizes a <tt>W-by-H</tt> image using the seam 
@@ -64,6 +63,7 @@ public class SeamCarver {
     
     private static final double HIGH_ENERGY = 3.0*255*255;
     private Picture pict;
+    private double[][] eMatrix;
     
     /**
      * create a seam carver object based on the given picture
@@ -145,9 +145,7 @@ public class SeamCarver {
         if (seam.length != width()) throw new IllegalArgumentException();
        
         Picture transposedPic = transpose(this.pict);
-        transposedPic = removeVerticalSeam(seam, transposedPic);
-        
-        this.pict = transpose(transposedPic);
+        this.pict = transpose(removeVerticalSeam(seam, transposedPic));
     }
     
     /**
@@ -193,85 +191,100 @@ public class SeamCarver {
         for (int y = 0; y < H; y++) {
             int i = 0;
             for (int x = 0; x < W; x++) {
-                if (seam[y] != x) newPict.set(i++, y, pict.get(x, y));
+                if (seam[y] != x) newPict.set(i++, y, curPict.get(x, y));
             }
         }
         return newPict;
     }
     
-    private double[][] computeEnergyMatrix(Picture curPict) {
+    private void computeEnergyMatrix(Picture curPict) {
         int H = curPict.height();
         int W = curPict.width();
-        double[][] eMatrix = new double[H][W];
+        eMatrix = new double[W][H];
         
         for (int y = 0; y < H; y++) {
             for (int x = 0; x < W; x++) {
-                eMatrix[y][x] = energy(x, y, curPict);
+                eMatrix[x][y] = energy(x, y, curPict);
             }
         }
-        return eMatrix;
+    }
+    
+    private void init(int[][] edgTo, double[][]distTo, int H, int W) {
+        for (int x = 0; x < W; x++) {
+            for (int y = 0; y < H; y++) {
+                edgTo[x][y] = 0;
+                if (y == 0) distTo[x][y] = this.HIGH_ENERGY;
+                else        distTo[x][y] = Double.POSITIVE_INFINITY;
+            }
+        }
+    }
+    
+    private void relax(int x0, int y0, int x1, int y1, int n,
+                       int[][] edgeTo, double[][] distTo) {
+        if (distTo[x1][y1] > distTo[x0][y0] + eMatrix[x1][y1]) {
+            distTo[x1][y1] = distTo[x0][y0] + eMatrix[x1][y1];
+            edgeTo[x1][y1] = n;
+        }
     }
     
     private int[] findVerticalSeam(Picture curPict) {
         int H = curPict.height();
         int W = curPict.width();
         int[] seam = new int[H];
-        double[][] eMatrix = computeEnergyMatrix(curPict);
-        Queue<Integer> seamQueue = new Queue<Integer>();
-        double minWeight = HIGH_ENERGY*H + 1;
- 
-        // for each pixel in the top row, compute the shortest path to bottom
+        computeEnergyMatrix(curPict);
+        int[][] edgeTo     = new int[W][H];
+        double[][] distTo  = new double[W][H];
+        
+        init(edgeTo, distTo, H, W);
+  
+        // go through the topological sorted graph and compute total energy
         for (int x = 0; x < W; x++) {
+            int y = 0;
             Queue<Integer> q = new Queue<Integer>();
-            double totalWeight = eMatrix[0][x];
-            int minX = x;
-            q.enqueue(minX); 
-            for (int y = 0; y < H-1; y++) {
-                minX = minWeightColumn(minX, y, eMatrix);
-                q.enqueue(minX);
-                totalWeight += eMatrix[y+1][minX];
-            }
-            if (totalWeight < minWeight) {
-                minWeight = totalWeight;
-                seamQueue = q;
+            int n = y*W + x;
+            q.enqueue(n); 
+            while (!q.isEmpty()) {
+                n = q.dequeue();
+                int x0 = n % W;
+                int y0 = n / W;
+                int y1 = y0+1;
+                int x1 = x0-1;
+                int x2 = x0+1;
+                if (x0 > 0) relax(x0, y0, x1, y1, n, edgeTo, distTo);
+                relax(x0, y0, x0, y1, n, edgeTo, distTo);
+                if (x2 < W) relax(x0, y0, x2, y1, n, edgeTo, distTo);
+                if (y1 < H-1) {
+                    if (x0 > 0) q.enqueue(y1*W+x1);
+                    q.enqueue(y1*W+x0);
+                    if (x2 < W) q.enqueue(y1*W+x2);
+                }
             }
         }
         
-        int i = 0;
-        Iterator<Integer> it = seamQueue.iterator();
-        while (it.hasNext()) seam[i++] = it.next();
-        
+        // now find the minimum weight location
+        int y = H-1;
+        int minX = 0;
+        for (int x = 1; x < W; x++) {
+            if (distTo[minX][y] > distTo[x][y]) minX = x;
+        }
+        while (y >= 0) {
+            seam[y] = minX;
+            minX = edgeTo[minX][y];
+            minX = minX % W;
+            y--;
+        }
+                
         return seam;
     }
-    
-    /*
-     * Given an x, y location and the entire energy matrix, returns the column 
-     * that has the minimum energy below this location. It is either x-1, x, 
-     * or x+1;
-     */
-    private int minWeightColumn(int x, int y, double[][] eMatrix) {
-        double w1 = HIGH_ENERGY;
-        double w3 = HIGH_ENERGY;
-        double w2 = eMatrix[y+1][x];
+     
+    private Picture transpose(Picture curPict) {
+        Picture transposedPic = new Picture(curPict.height(), curPict.width());
         
-        if (x > 0)                   w1 = eMatrix[y+1][x-1];
-        if (x+1 < eMatrix[0].length) w3 = eMatrix[y+1][x+1];        
-
-        int minX = x;
-        if (w1 <= w2 && w1 <= w3)      minX = x-1;
-        else if (w3 < w1 && w3 < w2)   minX = x+1;
-        
-        return minX;
-    }
-    
-    private Picture transpose(Picture curPic) {
-        Picture transposedPic = new Picture(height(), width());
-        
-        int H = height();
-        int W = width();
+        int H = curPict.height();
+        int W = curPict.width();
         for (int x = 0; x < W; x++) {
             for (int y = 0; y < H; y++) {
-                Color c = pict.get(x, y);
+                Color c = curPict.get(x, y);
                 transposedPic.set(y, x, c);
             }
         }
