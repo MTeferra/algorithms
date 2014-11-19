@@ -238,26 +238,16 @@ public class SeamCarver {
         init(edgeTo, distTo, H, W);
   
         // go through the topological sorted graph and compute total energy
-        for (int x = 0; x < W; x++) {
-            int y = 0;
-            Queue<Integer> q = new Queue<Integer>();
-            int n = y*W + x;
-            q.enqueue(n); 
-            while (!q.isEmpty()) {
-                n = q.dequeue();
-                int x0 = n % W;
-                int y0 = n / W;
-                int y1 = y0+1;
-                int x1 = x0-1;
-                int x2 = x0+1;
-                if (x0 > 0) relax(x0, y0, x1, y1, n, edgeTo, distTo);
-                relax(x0, y0, x0, y1, n, edgeTo, distTo);
-                if (x2 < W) relax(x0, y0, x2, y1, n, edgeTo, distTo);
-                if (y1 < H-1) {
-                    if (x0 > 0) q.enqueue(y1*W+x1);
-                    q.enqueue(y1*W+x0);
-                    if (x2 < W) q.enqueue(y1*W+x2);
-                }
+        for (int y = 0; y < H-1; y++) {
+            int n = y*W;
+            for (int x = 0; x < W; x++) {
+                int nn = n + x;
+                int y1 = y+1;
+                int x1 = x-1;
+                int x2 = x+1;
+                if (x > 0) relax(x, y, x1, y1, nn, edgeTo, distTo);
+                relax(x, y, x, y1, nn, edgeTo, distTo);
+                if (x2 < W) relax(x, y, x2, y1, nn, edgeTo, distTo);
             }
         }
         
